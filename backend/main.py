@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import pdf
+from routers import pdf, sessions, chat
 
 app = FastAPI(title="Folio API")
 
@@ -13,3 +13,5 @@ app.add_middleware(
 )
 
 app.include_router(pdf.router)
+app.include_router(sessions.router)
+app.include_router(chat.router)

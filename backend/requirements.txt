@@ -4,3 +4,5 @@ python-multipart
 PyMuPDF
 supabase
 python-dotenv
+google-genai
+groq

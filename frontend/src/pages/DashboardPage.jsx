@@ -1,147 +1,291 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { FileText, Plus, Trash2 } from 'lucide-react'
 import useSessionStore from '../store/sessionStore'
 import { signOut } from '../services/authService'
-
-const BACKEND_URL = 'http://localhost:8000'
+import { uploadPDF } from '../services/pdfService'
+import { fetchUserSessions, deleteSession } from '../services/sessionService'
+import { MAX_PDFS } from '../constants'
+import Skeleton from '../components/ui/Skeleton'
 
 export default function DashboardPage() {
   const user = useSessionStore((s) => s.user)
+  const session = useSessionStore((s) => s.session)
   const name = user?.user_metadata?.full_name ?? user?.email ?? 'there'
+  const avatarUrl = user?.user_metadata?.avatar_url
+  const navigate = useNavigate()
   const fileInputRef = useRef(null)
+
+  const [isLoading, setIsLoading] = useState(true)
+  const [sessions, setSessions] = useState([])
   const [uploading, setUploading] = useState(false)
-  const [uploadResult, setUploadResult] = useState(null)
   const [uploadError, setUploadError] = useState(null)
+  const [uploadHover, setUploadHover] = useState(false)
+
+  const atLimit = sessions.length >= MAX_PDFS
+
+  useEffect(() => {
+    if (!session?.access_token) return
+    fetchUserSessions(session.access_token)
+      .then(setSessions)
+      .catch(() => setSessions([]))
+      .finally(() => setIsLoading(false))
+  }, [session])
 
   async function handleFileChange(e) {
     const file = e.target.files?.[0]
     if (!file) return
 
     setUploading(true)
-    setUploadResult(null)
     setUploadError(null)
 
     try {
-      const form = new FormData()
-      form.append('file', file)
-      const res = await fetch(`${BACKEND_URL}/upload`, { method: 'POST', body: form })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail ?? 'Upload failed')
-      }
-      const data = await res.json()
-      setUploadResult(data)
+      const data = await uploadPDF(file, session.access_token)
+      navigate(`/workdesk/${data.session_id}`)
     } catch (err) {
       setUploadError(err.message)
-    } finally {
       setUploading(false)
+    } finally {
       e.target.value = ''
     }
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'var(--color-background)',
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+      {/* Navbar */}
+      <header style={{
         display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '1rem 2rem',
-          borderBottom: '1px solid var(--color-border)',
-        }}
-      >
-        <span style={{ fontWeight: 600, color: 'var(--color-text-primary)', fontSize: '1rem' }}>
-          Folio
-        </span>
-        <button
-          onClick={signOut}
-          style={{
-            background: 'none',
-            border: '1px solid var(--color-border)',
-            borderRadius: 'var(--radius)',
-            padding: '0.4rem 0.85rem',
-            fontSize: '0.85rem',
-            color: 'var(--color-text-secondary)',
-            fontFamily: 'inherit',
-            cursor: 'pointer',
-          }}
-        >
-          Sign out
-        </button>
-      </header>
-
-      <main
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '2rem',
-          padding: '4rem 2rem',
-        }}
-      >
-        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <h2
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 2.5rem',
+        height: '70px',
+        borderBottom: '1px solid var(--border)',
+        background: 'var(--bg)',
+      }}>
+        <span style={{ fontWeight: 1000, fontSize: '2.3rem', color: 'var(--text-primary)', letterSpacing: '-0.005em' }}>folio</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {avatarUrl && (
+            <img
+              src={avatarUrl}
+              alt={name}
+              referrerPolicy="no-referrer"
+              style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border)' }}
+            />
+          )}
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{name}</span>
+          <button
+            onClick={signOut}
             style={{
-              fontSize: '1.5rem',
-              fontWeight: 600,
-              color: 'var(--color-text-primary)',
-              margin: 0,
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              fontFamily: 'inherit',
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+              padding: '0.25rem 0.5rem',
             }}
           >
-            Welcome, {name}
-          </h2>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem', margin: 0 }}>
-            Your documents will appear here.
-          </p>
+            Sign out
+          </button>
+        </div>
+      </header>
+
+      {/* Body */}
+      <main style={{
+        flex: 1,
+        maxWidth: '800px',
+        width: '100%',
+        margin: '0 auto',
+        padding: '3rem 2rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '2rem',
+      }}>
+        <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 400, fontFamily: "'DM Serif Display', serif", color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+          Your Library
+        </h1>
+
+        {/* Upload area */}
+        <div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
+          <div
+            onClick={() => !atLimit && !uploading && fileInputRef.current?.click()}
+            onMouseEnter={() => setUploadHover(true)}
+            onMouseLeave={() => setUploadHover(false)}
+            style={{
+              border: '1.5px dashed var(--border)',
+              borderRadius: '8px',
+              padding: '2rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              cursor: atLimit || uploading ? 'not-allowed' : 'pointer',
+              background: uploadHover && !atLimit ? 'var(--surface)' : 'transparent',
+              opacity: atLimit ? 0.5 : 1,
+              transition: 'background 0.15s',
+            }}
+          >
+            <Plus size={20} color="var(--text-secondary)" />
+            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+              {uploading ? 'Uploading…' : atLimit ? "You've reached the 3 PDF limit" : 'Upload a PDF'}
+            </span>
+          </div>
+          {uploadError && (
+            <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: '#e03e3e' }}>{uploadError}</p>
+          )}
         </div>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="application/pdf"
-          style={{ display: 'none' }}
-          onChange={handleFileChange}
-        />
-
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          style={{
-            padding: '0.65rem 1.4rem',
-            background: 'var(--color-accent)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 'var(--radius)',
-            fontSize: '0.9rem',
-            fontWeight: 500,
-            fontFamily: 'inherit',
-            cursor: uploading ? 'not-allowed' : 'pointer',
-            opacity: uploading ? 0.7 : 1,
-          }}
-        >
-          {uploading ? 'Uploading…' : 'Upload your first PDF'}
-        </button>
-
-        {uploadResult && (
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', margin: 0 }}>
-            ✓ {uploadResult.filename} uploaded — {uploadResult.page_count} pages
-          </p>
-        )}
-
-        {uploadError && (
-          <p style={{ color: '#e03e3e', fontSize: '0.875rem', margin: 0 }}>
-            {uploadError}
-          </p>
+        {/* Sessions grid */}
+        {isLoading ? (
+          <SkeletonGrid />
+        ) : sessions.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: '1rem',
+          }}>
+            {sessions.map((s) => (
+              <SessionCard
+                key={s.id}
+                session={s}
+                onContinue={() => navigate(`/workdesk/${s.id}`)}
+                onDelete={async () => {
+                  await deleteSession(s.id, session.access_token)
+                  setSessions((prev) => prev.filter((x) => x.id !== s.id))
+                }}
+              />
+            ))}
+          </div>
         )}
       </main>
+    </div>
+  )
+}
+
+function EmptyState() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', padding: '4rem 0' }}>
+      <FileText size={40} color="var(--text-secondary)" />
+      <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)', fontSize: '1rem' }}>No PDFs yet</p>
+      <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+        Upload your first PDF to get started
+      </p>
+    </div>
+  )
+}
+
+function SkeletonGrid() {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+      {[0, 1, 2].map((i) => (
+        <div key={i} style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: '8px',
+          padding: '1rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+        }}>
+          <Skeleton width="60%" height="1rem" />
+          <Skeleton width="40%" height="0.75rem" />
+          <Skeleton width="80px" height="0.75rem" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SessionCard({ session, onContinue, onDelete }) {
+  const [hovered, setHovered] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const date = new Date(session.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      await onDelete()
+    } catch {
+      setDeleting(false)
+      setConfirming(false)
+    }
+  }
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); if (!deleting) setConfirming(false) }}
+      style={{
+        background: 'var(--surface)',
+        border: `1px solid ${confirming ? '#e03e3e' : 'var(--border)'}`,
+        borderRadius: '8px',
+        padding: '1rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem',
+        boxShadow: hovered ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+        transition: 'box-shadow 0.15s, border-color 0.15s',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <FileText size={16} color="var(--text-secondary)" />
+        <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+          {session.filename}
+        </span>
+        {/* Trash icon — visible on hover */}
+        {hovered && !confirming && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setConfirming(true) }}
+            title="Delete"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', color: 'var(--text-secondary)', borderRadius: '4px' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#e03e3e'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
+      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{date}</span>
+
+      {/* Bottom row — confirm state swaps in over the Continue button */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem', minHeight: '1.5rem' }}>
+        {confirming ? (
+          <>
+            <span style={{ fontSize: '0.8rem', color: '#e03e3e', flex: 1 }}>Delete this PDF?</span>
+            <button
+              onClick={() => setConfirming(false)}
+              style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontFamily: 'inherit', fontSize: '0.8rem', cursor: 'pointer', padding: '0.15rem 0.4rem' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              style={{ background: 'none', border: 'none', color: '#e03e3e', fontFamily: 'inherit', fontWeight: 600, fontSize: '0.8rem', cursor: deleting ? 'not-allowed' : 'pointer', padding: '0.15rem 0.4rem', opacity: deleting ? 0.6 : 1 }}
+            >
+              {deleting ? 'Deleting…' : 'Delete'}
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={onContinue}
+            style={{ background: 'none', border: 'none', color: 'var(--accent)', fontFamily: 'inherit', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer', padding: '0.25rem 0' }}
+          >
+            Continue →
+          </button>
+        )}
+      </div>
     </div>
   )
 }

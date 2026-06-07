@@ -1,0 +1,33 @@
+from fastapi import APIRouter, Depends, HTTPException
+from dependencies import get_current_user_id
+from services import session_manager, storage
+
+router = APIRouter(prefix="/sessions")
+
+
+@router.get("")
+def list_sessions(user_id: str = Depends(get_current_user_id)):
+    return session_manager.get_sessions_for_user(user_id)
+
+
+@router.get("/{session_id}")
+def get_session(session_id: str, user_id: str = Depends(get_current_user_id)):
+    session = session_manager.get_session_by_id(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session["user_id"] != user_id:
+        raise HTTPException(status_code=403, detail="Not your session")
+    signed_url = storage.get_signed_url(session["storage_path"])
+    return {**session, "signed_url": signed_url}
+
+
+@router.delete("/{session_id}")
+def delete_session(session_id: str, user_id: str = Depends(get_current_user_id)):
+    session = session_manager.get_session_by_id(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session["user_id"] != user_id:
+        raise HTTPException(status_code=403, detail="Not your session")
+    storage.delete_pdf(session["storage_path"])
+    session_manager.delete_session(session_id)
+    return {"status": "deleted"}

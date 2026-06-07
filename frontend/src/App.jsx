@@ -19,7 +19,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-      <Route path="/workdesk" element={<ProtectedRoute><WorkdeskPage /></ProtectedRoute>} />
+      <Route path="/workdesk/:id" element={<ProtectedRoute><WorkdeskPage /></ProtectedRoute>} />
     </Routes>
   )
 }

@@ -1,17 +1,35 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=DM+Serif+Display&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --color-background: #ffffff;
-  --color-surface: #f7f7f5;
-  --color-text-primary: #191919;
-  --color-text-secondary: #787774;
-  --color-border: #e9e9e7;
-  --color-accent: #2383e2;
+  --bg: #FFFFFF;
+  --surface: #F7F7F5;
+  --text-primary: #191919;
+  --text-secondary: #787774;
+  --border: #E9E9E7;
+  --accent: #2383E2;
+  --on-accent: #FFFFFF;
+
+  /* Aliases — keep Tailwind/PDFViewer classes working without touching that file */
+  --color-background: var(--bg);
+  --color-surface: var(--surface);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
   --radius: 6px;
+}
+
+[data-theme="dark"] {
+  --bg: #191919;
+  --surface: #202020;
+  --text-primary: #FFFFFF;
+  --text-secondary: #787774;
+  --border: #2F2F2F;
+  --accent: #2383E2;
 }
 
 * {
@@ -28,7 +46,12 @@ body,
 
 body {
   font-family: 'Inter', sans-serif;
-  background-color: var(--color-background);
-  color: var(--color-text-primary);
+  background-color: var(--bg);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
