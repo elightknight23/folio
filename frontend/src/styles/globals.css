@@ -55,3 +55,31 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
+
+/* Wire Tailwind's prose tokens to our CSS variables so markdown inherits the theme */
+.prose {
+  --tw-prose-body: var(--text-primary);
+  --tw-prose-headings: var(--text-primary);
+  --tw-prose-lead: var(--text-secondary);
+  --tw-prose-links: var(--accent);
+  --tw-prose-bold: var(--text-primary);
+  --tw-prose-counters: var(--text-secondary);
+  --tw-prose-bullets: var(--text-secondary);
+  --tw-prose-hr: var(--border);
+  --tw-prose-code: var(--text-primary);
+  --tw-prose-pre-bg: var(--surface);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+  max-width: none;
+  font-size: inherit;
+  line-height: 1.6;
+}
+
+/* Paragraph and list spacing inside chat bubbles */
+.prose p { margin-top: 0.5em; margin-bottom: 0.5em; }
+.prose p:first-child { margin-top: 0; }
+.prose p:last-child { margin-bottom: 0; }
+.prose ul, .prose ol { margin-top: 0.4em; margin-bottom: 0.4em; padding-left: 1.4em; }
+.prose li { margin-top: 0.15em; margin-bottom: 0.15em; }
+.prose h1, .prose h2, .prose h3 { margin-top: 0.8em; margin-bottom: 0.3em; font-weight: 600; }
+.prose h1:first-child, .prose h2:first-child, .prose h3:first-child { margin-top: 0; }

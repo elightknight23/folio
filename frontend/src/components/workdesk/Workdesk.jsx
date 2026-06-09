@@ -1,15 +1,18 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Sun, Moon, PanelRightClose, PanelRightOpen } from 'lucide-react'
+import { ArrowLeft, Sun, Moon, PanelRightClose, PanelRightOpen, Scissors, BotMessageSquare } from 'lucide-react'
 import PDFViewer from '../pdf/PDFViewer'
 import AIChat from '../chat/AIChat'
+import SelectionTooltip from '../ui/Tooltip'
 import useLayoutStore from '../../store/layoutStore'
 import useSessionStore from '../../store/sessionStore'
 import usePdfStore from '../../store/pdfStore'
+import useChatStore from '../../store/chatStore'
 
 const DEFAULT_LEFT_PCT = 55
 const MIN_LEFT_PCT = 30
 const MAX_LEFT_PCT = 75
+const PANEL_TRANSITION = 'width 300ms cubic-bezier(0.4, 0, 0.2, 1)'
 
 export default function Workdesk({ pdfUrl }) {
   const navigate = useNavigate()
@@ -18,6 +21,7 @@ export default function Workdesk({ pdfUrl }) {
   const scrollToPageRef = useRef(null)
   const containerRef = useRef(null)
   const pageDebounceRef = useRef(null)
+  const dragging = useRef(false)
 
   const handlePageChange = useCallback((page) => {
     clearTimeout(pageDebounceRef.current)
@@ -25,15 +29,29 @@ export default function Workdesk({ pdfUrl }) {
       usePdfStore.getState().setCurrentPage(page)
     }, 300)
   }, [])
+
   const [leftPct, setLeftPct] = useState(DEFAULT_LEFT_PCT)
   const [dividerHover, setDividerHover] = useState(false)
-  const dragging = useRef(false)
+  const [isDragging, setIsDragging] = useState(false)   // Fix 6: suppress transition during drag
+
+  // Fix 5: AI-only mode collapses PDF panel to give full width to chat
+  const [aiOnlyMode, setAiOnlyMode] = useState(false)
+
+  // Highlight-to-Ask state
+  const [selectionInfo, setSelectionInfo] = useState(null)
+
+  // Vision-to-Ask state
+  const [cropMode, setCropMode] = useState(false)
+  const [pendingImage, setPendingImage] = useState(null)
 
   const filename = activeSession?.filename ?? 'Untitled Document'
+
+  const panelTransition = isDragging ? 'none' : PANEL_TRANSITION
 
   const onDividerMouseDown = useCallback((e) => {
     e.preventDefault()
     dragging.current = true
+    setIsDragging(true)
 
     const onMove = (ev) => {
       if (!dragging.current || !containerRef.current) return
@@ -44,6 +62,7 @@ export default function Workdesk({ pdfUrl }) {
 
     const onUp = () => {
       dragging.current = false
+      setIsDragging(false)
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
@@ -52,39 +71,55 @@ export default function Workdesk({ pdfUrl }) {
     window.addEventListener('mouseup', onUp)
   }, [])
 
-  // Clean up drag listeners on unmount
   useEffect(() => () => { dragging.current = false }, [])
+
+  function handleTextSelect({ text, rect }) {
+    if (cropMode) return
+    setSelectionInfo({ text, rect })
+  }
+
+  function handleTooltipAction(action, text) {
+    const prompt = `${action} the following text: "${text}"`
+    if (!aiPanelOpen) toggleAiPanel()
+    if (aiOnlyMode === false && !aiPanelOpen) setAiOnlyMode(false)
+    useChatStore.getState().setPendingPrompt(prompt)
+    setSelectionInfo(null)
+    window.getSelection()?.removeAllRanges()
+  }
+
+  function handleCropComplete(base64) {
+    setPendingImage(base64)
+    setCropMode(false)
+    if (!aiPanelOpen) toggleAiPanel()
+  }
+
+  function toggleAiOnly() {
+    if (!aiOnlyMode && !aiPanelOpen) toggleAiPanel()
+    setAiOnlyMode((v) => !v)
+  }
+
+  // Compute left panel width
+  const leftWidth = aiOnlyMode ? '0%' : aiPanelOpen ? `${leftPct}%` : '100%'
+  const rightWidth = aiOnlyMode ? '100%' : aiPanelOpen ? `${100 - leftPct}%` : '0px'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)' }}>
       {/* Toolbar */}
       <div style={{
-        height: '44px',
-        minHeight: '44px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        height: '44px', minHeight: '44px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 1rem',
-        background: 'var(--surface)',
-        borderBottom: '1px solid var(--border)',
+        background: 'var(--surface)', borderBottom: '1px solid var(--border)',
         gap: '1rem',
       }}>
         {/* Left */}
         <button
           onClick={() => navigate('/dashboard')}
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            fontFamily: 'inherit',
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-            padding: '0.25rem 0.5rem',
-            borderRadius: '6px',
-            flexShrink: 0,
+            display: 'flex', alignItems: 'center', gap: '0.35rem',
+            background: 'none', border: 'none', color: 'var(--text-secondary)',
+            fontFamily: 'inherit', fontSize: '0.85rem', cursor: 'pointer',
+            padding: '0.25rem 0.5rem', borderRadius: '6px', flexShrink: 0,
           }}
         >
           <ArrowLeft size={15} />
@@ -93,20 +128,29 @@ export default function Workdesk({ pdfUrl }) {
 
         {/* Centre */}
         <span style={{
-          fontWeight: 600,
-          color: 'var(--text-primary)',
-          fontSize: '0.9rem',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          flex: 1,
-          textAlign: 'center',
+          fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          flex: 1, textAlign: 'center',
         }}>
           {filename}
         </span>
 
         {/* Right */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 }}>
+          <IconButton
+            onClick={() => setCropMode((v) => !v)}
+            title={cropMode ? 'Cancel snipping (Esc)' : 'Snipping tool — drag to crop'}
+            active={cropMode}
+          >
+            <Scissors size={16} />
+          </IconButton>
+          <IconButton
+            onClick={toggleAiOnly}
+            title={aiOnlyMode ? 'Back to split view' : 'AI-only mode'}
+            active={aiOnlyMode}
+          >
+            <BotMessageSquare size={16} />
+          </IconButton>
           <IconButton
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             title="Toggle dark mode"
@@ -123,57 +167,66 @@ export default function Workdesk({ pdfUrl }) {
       <div ref={containerRef} style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left — PDF */}
         <div style={{
-          width: aiPanelOpen ? `${leftPct}%` : '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          background: 'var(--bg)',
-          transition: 'width 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+          width: leftWidth,
+          display: 'flex', flexDirection: 'column',
+          overflow: 'hidden', background: 'var(--bg)',
+          transition: panelTransition,
         }}>
           <PDFViewer
             url={pdfUrl}
             scrollToPage={scrollToPageRef}
             onPageChange={handlePageChange}
-            onTextSelect={() => {}}
+            onTextSelect={handleTextSelect}
+            cropMode={cropMode}
+            onCropComplete={handleCropComplete}
+            onCancelCrop={() => setCropMode(false)}
           />
         </div>
 
-        {/* Resize divider — hidden (not unmounted) when panel is closed */}
+        {/* Resize divider — hidden when AI-only or panel closed */}
         <div
           onMouseDown={onDividerMouseDown}
           onMouseEnter={() => setDividerHover(true)}
           onMouseLeave={() => setDividerHover(false)}
           style={{
-            width: aiPanelOpen ? '4px' : '0px',
+            width: aiPanelOpen && !aiOnlyMode ? '4px' : '0px',
             cursor: 'col-resize',
             background: dividerHover ? 'var(--accent)' : 'var(--border)',
-            flexShrink: 0,
-            overflow: 'hidden',
-            transition: 'width 300ms cubic-bezier(0.4, 0, 0.2, 1), background 0.15s',
+            flexShrink: 0, overflow: 'hidden',
+            transition: panelTransition + ', background 0.15s',
           }}
         />
 
-        {/* Right — AI placeholder. Never unmounted — animates via width. */}
+        {/* Right — AI panel */}
         <div style={{
-          width: aiPanelOpen ? `${100 - leftPct}%` : '0px',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          background: 'var(--surface)',
-          borderLeft: '1px solid var(--border)',
-          transition: 'width 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+          width: rightWidth,
+          overflow: 'hidden', display: 'flex', flexDirection: 'column',
+          background: 'var(--surface)', borderLeft: '1px solid var(--border)',
+          transition: panelTransition,
         }}>
-          {/* min-width prevents reflow during collapse animation; outer overflow:hidden clips it */}
           <div style={{ width: '100%', minWidth: '300px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <AIChat />
+            <AIChat
+              pendingImage={pendingImage}
+              onClearImage={() => setPendingImage(null)}
+            />
           </div>
         </div>
       </div>
+
+      {/* Selection tooltip — fixed positioning, outside panel layout */}
+      {selectionInfo && (
+        <SelectionTooltip
+          text={selectionInfo.text}
+          rect={selectionInfo.rect}
+          onAction={handleTooltipAction}
+          onDismiss={() => setSelectionInfo(null)}
+        />
+      )}
     </div>
   )
 }
 
-function IconButton({ onClick, title, children }) {
+function IconButton({ onClick, title, children, active }) {
   const [hovered, setHovered] = useState(false)
   return (
     <button
@@ -182,17 +235,12 @@ function IconButton({ onClick, title, children }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '30px',
-        height: '30px',
-        background: hovered ? 'var(--border)' : 'transparent',
-        border: 'none',
-        borderRadius: '6px',
-        color: 'var(--text-secondary)',
-        cursor: 'pointer',
-        transition: 'background 0.15s',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: '30px', height: '30px',
+        background: active ? 'var(--accent)' : hovered ? 'var(--border)' : 'transparent',
+        border: 'none', borderRadius: '6px',
+        color: active ? 'var(--on-accent)' : 'var(--text-secondary)',
+        cursor: 'pointer', transition: 'background 0.15s',
       }}
     >
       {children}

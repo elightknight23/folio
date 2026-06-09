@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import Generator, Optional
 from services import pdf_parser, chunker, embedder, vector_store, llm_client
 
 
@@ -27,7 +27,7 @@ def process_pdf_for_rag(session_id: str, pdf_bytes: bytes) -> None:
         print(f"[rag_pipeline] ERROR for session {session_id}: {e}")
 
 
-def generate_chat_response(session_id: str, user_message: str, current_page: int) -> Generator[str, None, None]:
+def generate_chat_response(session_id: str, user_message: str, current_page: int, image_data: Optional[str] = None) -> Generator[str, None, None]:
     query_embedding = embedder.embed_texts([user_message])[0]
     similar_chunks = vector_store.search_similar_chunks(session_id, query_embedding)
     page_text = vector_store.get_page_text(session_id, current_page)
@@ -41,11 +41,15 @@ def generate_chat_response(session_id: str, user_message: str, current_page: int
     global_context = "\n\n".join(global_context_parts) or "(no relevant chunks found)"
 
     system_prompt = (
-        f"You are Folio, an AI study assistant helping a student understand their PDF.\n\n"
-        f"CURRENT PAGE ({current_page}):\n{local_context}\n\n"
-        f"RELEVANT CONTEXT FROM THE DOCUMENT:\n{global_context}\n\n"
-        f"Answer using the context above. Be concise and educational. "
-        f"If the answer isn't in the provided context, say so clearly."
+        "You are Folio, a friendly AI study assistant helping a student understand their PDF.\n"
+        "RULES:\n"
+        "- Format every response using Markdown: use **bold**, bullet lists, and ## headers where they help.\n"
+        "- Default to concise, plain-language answers — avoid academic jargon unless the user asks for it.\n"
+        "- If the user asks you to simplify, expand, rephrase, or give examples, do it immediately.\n"
+        "- If you cite something from a specific page in the document, mention the page number.\n"
+        "- If the answer is not in the provided context, say so briefly and offer to help with what you do know.\n\n"
+        f"CURRENT PAGE ({current_page}) TEXT:\n{local_context}\n\n"
+        f"RELEVANT CONTEXT FROM ELSEWHERE IN THE DOCUMENT:\n{global_context}"
     )
 
-    yield from llm_client.stream_response(system_prompt, user_message)
+    yield from llm_client.stream_response(system_prompt, user_message, image_data=image_data)
