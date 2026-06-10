@@ -12,6 +12,8 @@
   --border: #E9E9E7;
   --accent: #2383E2;
   --on-accent: #FFFFFF;
+  /* Slightly darker than --bg so the white PDF page looks like paper on a desk */
+  --pdf-bg: #EBEBEA;
 
   /* Aliases — keep Tailwind/PDFViewer classes working without touching that file */
   --color-background: var(--bg);
@@ -30,6 +32,8 @@
   --text-secondary: #787774;
   --border: #2F2F2F;
   --accent: #2383E2;
+  /* Darker than --bg so the rendered PDF pops as a brighter card */
+  --pdf-bg: #111111;
 }
 
 * {
@@ -73,6 +77,52 @@ body {
   max-width: none;
   font-size: inherit;
   line-height: 1.6;
+}
+
+/* Font size slider — iOS-style custom track and thumb */
+.chat-font-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+}
+.chat-font-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-secondary) 28%, transparent);
+}
+.chat-font-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.chat-font-slider::-webkit-slider-thumb:active {
+  transform: scale(1.2);
+}
+.chat-font-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-secondary) 28%, transparent);
+}
+.chat-font-slider::-moz-range-thumb {
+  border: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  cursor: pointer;
 }
 
 /* Paragraph and list spacing inside chat bubbles */

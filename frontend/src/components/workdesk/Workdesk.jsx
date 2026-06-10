@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Sun, Moon, PanelRightClose, PanelRightOpen, Scissors, BotMessageSquare } from 'lucide-react'
+import { ArrowLeft, Sun, Moon, PanelRightClose, PanelRightOpen, Scissors, BotMessageSquare, Maximize2, Minimize2 } from 'lucide-react'
 import PDFViewer from '../pdf/PDFViewer'
 import AIChat from '../chat/AIChat'
 import SelectionTooltip from '../ui/Tooltip'
@@ -36,6 +36,21 @@ export default function Workdesk({ pdfUrl }) {
 
   // Fix 5: AI-only mode collapses PDF panel to give full width to chat
   const [aiOnlyMode, setAiOnlyMode] = useState(false)
+
+  // Native fullscreen
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => document.removeEventListener('fullscreenchange', onFsChange)
+  }, [])
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(console.error)
+    } else {
+      document.exitFullscreen()
+    }
+  }
 
   // Highlight-to-Ask state
   const [selectionInfo, setSelectionInfo] = useState(null)
@@ -160,16 +175,19 @@ export default function Workdesk({ pdfUrl }) {
           <IconButton onClick={toggleAiPanel} title="Toggle AI panel">
             {aiPanelOpen ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
           </IconButton>
+          <IconButton onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          </IconButton>
         </div>
       </div>
 
       {/* Panels */}
       <div ref={containerRef} style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Left — PDF */}
+        {/* Left — PDF. --pdf-bg is slightly darker than --bg so the white page looks like paper on a desk */}
         <div style={{
           width: leftWidth,
           display: 'flex', flexDirection: 'column',
-          overflow: 'hidden', background: 'var(--bg)',
+          overflow: 'hidden', background: 'var(--pdf-bg)',
           transition: panelTransition,
         }}>
           <PDFViewer

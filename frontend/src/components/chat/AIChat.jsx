@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, X, ALargeSmall } from 'lucide-react'
+import { Send, X, ALargeSmall, Sparkles } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import useSessionStore from '../../store/sessionStore'
@@ -9,14 +9,10 @@ import { streamMessage } from '../../services/chatService'
 import useToast from '../../hooks/useToast'
 import Toast from '../ui/Toast'
 
-const FONT_SIZES = ['sm', 'md', 'lg']
-const FONT_SIZE_PX = { sm: '13px', md: '15px', lg: '17px' }
 const FONT_SIZE_KEY = 'folio-chat-fontsize'
-
-function nextSize(current) {
-  const idx = FONT_SIZES.indexOf(current)
-  return FONT_SIZES[(idx + 1) % FONT_SIZES.length]
-}
+const FONT_SIZE_DEFAULT = 14
+const FONT_SIZE_MIN = 12
+const FONT_SIZE_MAX = 32
 
 export default function AIChat({ pendingImage, onClearImage }) {
   const session = useSessionStore((s) => s.session)
@@ -30,8 +26,9 @@ export default function AIChat({ pendingImage, onClearImage }) {
 
   const [input, setInput] = useState('')
   const [fontSize, setFontSize] = useState(
-    () => localStorage.getItem(FONT_SIZE_KEY) ?? 'md'
+    () => Number(localStorage.getItem(FONT_SIZE_KEY)) || FONT_SIZE_DEFAULT
   )
+  const [showSlider, setShowSlider] = useState(false)
   const messagesEndRef = useRef(null)
   const { toasts, showToast } = useToast()
 
@@ -39,10 +36,10 @@ export default function AIChat({ pendingImage, onClearImage }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  function cycleFontSize() {
-    const next = nextSize(fontSize)
-    setFontSize(next)
-    localStorage.setItem(FONT_SIZE_KEY, next)
+  function handleFontSizeChange(val) {
+    const n = Number(val)
+    setFontSize(n)
+    localStorage.setItem(FONT_SIZE_KEY, n)
   }
 
   const send = useCallback(async (msg, imageData = null) => {
@@ -92,10 +89,9 @@ export default function AIChat({ pendingImage, onClearImage }) {
   }
 
   const canSend = !isTyping && (input.trim().length > 0 || !!pendingImage)
-  const fz = FONT_SIZE_PX[fontSize]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', fontSize: fz }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', fontSize: `${fontSize}px` }}>
 
       {/* Header */}
       <div style={{
@@ -110,29 +106,59 @@ export default function AIChat({ pendingImage, onClearImage }) {
             · page {currentPage}
           </span>
         </div>
-        <button
-          onClick={cycleFontSize}
-          title={`Text size: ${fontSize.toUpperCase()} — click to cycle`}
+        {/* Font size pill — expands inline on hover, mouse never leaves the container */}
+        <div
+          onMouseEnter={() => setShowSlider(true)}
+          onMouseLeave={() => setShowSlider(false)}
           style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text-secondary)', padding: '2px 6px',
-            borderRadius: '4px', fontSize: '0.7rem', fontFamily: 'inherit',
-            display: 'flex', alignItems: 'center', gap: '3px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            width: showSlider ? '164px' : '30px',
+            overflow: 'hidden',
+            transition: 'width 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            background: 'color-mix(in srgb, var(--surface) 70%, transparent)',
+            border: '1px solid var(--border)',
+            borderRadius: '999px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            padding: '4px 8px',
+            cursor: 'default',
+            flexShrink: 0,
           }}
         >
-          <ALargeSmall size={14} />
-          {fontSize.toUpperCase()}
-        </button>
+          <ALargeSmall
+            size={14}
+            style={{ flexShrink: 0, color: 'var(--text-secondary)', display: 'block' }}
+          />
+          <input
+            type="range"
+            min={FONT_SIZE_MIN}
+            max={FONT_SIZE_MAX}
+            step={1}
+            value={fontSize}
+            onChange={(e) => handleFontSizeChange(e.target.value)}
+            className="chat-font-slider"
+            style={{ flexShrink: 0, width: '88px' }}
+            tabIndex={-1}
+          />
+          <span style={{
+            fontSize: '11px',
+            color: 'var(--text-secondary)',
+            fontVariantNumeric: 'tabular-nums',
+            flexShrink: 0,
+            userSelect: 'none',
+          }}>
+            {fontSize}
+          </span>
+        </div>
       </div>
 
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {messages.length === 0 && (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <p style={{ color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.6, maxWidth: '220px' }}>
-              Ask anything about this document. I know what page you're on.
-            </p>
-          </div>
+          <EmptyState onHint={setInput} />
         )}
 
         {messages.map((msg) => (
@@ -238,6 +264,53 @@ function MessageBubble({ message }) {
         }
       </div>
     </div>
+  )
+}
+
+const HINTS = ['Summarize this page', 'Explain the key concepts']
+
+function EmptyState({ onHint }) {
+  return (
+    <div style={{
+      flex: 1, display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      gap: '1rem', padding: '2rem', textAlign: 'center',
+    }}>
+      <Sparkles size={36} style={{ opacity: 0.18, color: 'var(--text-secondary)' }} />
+      <p style={{ margin: 0, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.5 }}>
+        How can I help you study today?
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', width: '100%', maxWidth: '210px' }}>
+        {HINTS.map((hint) => (
+          <HintButton key={hint} label={hint} onClick={() => onHint(hint)} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function HintButton({ label, onClick }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: hovered ? 'var(--border)' : 'none',
+        border: '1px solid var(--border)',
+        borderRadius: '6px',
+        padding: '0.4rem 0.75rem',
+        fontSize: '0.8rem',
+        fontFamily: 'inherit',
+        color: hovered ? 'var(--text-primary)' : 'var(--text-secondary)',
+        cursor: 'pointer',
+        textAlign: 'center',
+        transition: 'background 0.1s, color 0.1s',
+      }}
+    >
+      {label}
+    </button>
   )
 }
 

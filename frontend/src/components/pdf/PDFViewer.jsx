@@ -159,7 +159,7 @@ export default function PDFViewer({ url, onPageChange, onTextSelect, scrollToPag
             Loading PDF…
           </div>
         ) : (
-          <div ref={wrapperRef} className="relative shadow-sm" style={{ borderRadius: 'var(--radius)' }}>
+          <div ref={wrapperRef} className="relative" style={{ borderRadius: 'var(--radius)', boxShadow: '0 2px 16px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06)' }}>
             <canvas ref={canvasRef} style={{ display: 'block' }} />
             <div
               ref={textLayerRef}
