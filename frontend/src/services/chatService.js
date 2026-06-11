@@ -1,8 +1,7 @@
 const BACKEND_URL = 'http://localhost:8000'
 
-export async function* streamMessage(sessionId, message, currentPage, token, imageData = null) {
+export async function* streamMessage(sessionId, message, currentPage, token) {
   const body = { message, current_page: currentPage }
-  if (imageData) body.image_data = imageData
 
   const res = await fetch(`${BACKEND_URL}/chat/${sessionId}`, {
     method: 'POST',

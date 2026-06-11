@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Sun, Moon, PanelRightClose, PanelRightOpen, Scissors, BotMessageSquare, Maximize2, Minimize2, NotebookPen } from 'lucide-react'
+import { ArrowLeft, Sun, Moon, PanelRightClose, PanelRightOpen, BotMessageSquare, Maximize2, Minimize2, NotebookPen } from 'lucide-react'
 import PDFViewer from '../pdf/PDFViewer'
 import AIChat from '../chat/AIChat'
 import NotesPanel from '../notes/NotesPanel'
@@ -47,7 +47,7 @@ export default function Workdesk({ pdfUrl }) {
   }, [])
   function toggleFullscreen() {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(console.error)
+      document.documentElement.requestFullscreen().catch(() => {})
     } else {
       document.exitFullscreen()
     }
@@ -55,10 +55,6 @@ export default function Workdesk({ pdfUrl }) {
 
   // Highlight-to-Ask state
   const [selectionInfo, setSelectionInfo] = useState(null)
-
-  // Vision-to-Ask state
-  const [cropMode, setCropMode] = useState(false)
-  const [pendingImage, setPendingImage] = useState(null)
 
   const filename = activeSession?.filename ?? 'Untitled Document'
   const panelTransition = isDragging ? 'none' : PANEL_TRANSITION
@@ -99,12 +95,6 @@ export default function Workdesk({ pdfUrl }) {
     useChatStore.getState().setPendingPrompt(prompt)
     setSelectionInfo(null)
     window.getSelection()?.removeAllRanges()
-  }
-
-  function handleCropComplete(base64) {
-    setPendingImage(base64)
-    setCropMode(false)
-    if (!aiPanelOpen) toggleAiPanel()
   }
 
   function toggleAiOnly() {
@@ -153,13 +143,6 @@ export default function Workdesk({ pdfUrl }) {
         {/* Right */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 }}>
           <IconButton
-            onClick={() => setCropMode((v) => !v)}
-            title={cropMode ? 'Cancel snipping (Esc)' : 'Snipping tool — drag to crop'}
-            active={cropMode}
-          >
-            <Scissors size={16} />
-          </IconButton>
-          <IconButton
             onClick={() => setNotesPanelOpen((v) => !v)}
             title={notesPanelOpen ? 'Close notes' : 'Open notes'}
             active={notesPanelOpen}
@@ -203,9 +186,6 @@ export default function Workdesk({ pdfUrl }) {
             scrollToPage={scrollToPageRef}
             onPageChange={handlePageChange}
             onTextSelect={handleTextSelect}
-            cropMode={cropMode}
-            onCropComplete={handleCropComplete}
-            onCancelCrop={() => setCropMode(false)}
           />
         </div>
 
@@ -252,10 +232,7 @@ export default function Workdesk({ pdfUrl }) {
             borderLeft: notesPanelOpen && !aiOnlyMode ? 'none' : '1px solid var(--border)',
           }}>
             <div style={{ width: '100%', minWidth: '300px', height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <AIChat
-                pendingImage={pendingImage}
-                onClearImage={() => setPendingImage(null)}
-              />
+              <AIChat />
             </div>
           </div>
 

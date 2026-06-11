@@ -2,11 +2,9 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker?url'
 import 'pdfjs-dist/web/pdf_viewer.css'
-import CropOverlay from './CropOverlay'
-
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker
 
-export default function PDFViewer({ url, onPageChange, onTextSelect, scrollToPage, cropMode, onCropComplete, onCancelCrop }) {
+export default function PDFViewer({ url, onPageChange, onTextSelect, scrollToPage }) {
   const canvasRef = useRef(null)
   const textLayerRef = useRef(null)
   const wrapperRef = useRef(null)
@@ -105,7 +103,6 @@ export default function PDFViewer({ url, onPageChange, onTextSelect, scrollToPag
   }, [scrollToPage])
 
   const handleMouseUp = () => {
-    if (cropMode) return
     const sel = window.getSelection()
     const text = sel?.toString().trim()
     if (text && sel.rangeCount > 0) {
@@ -164,18 +161,8 @@ export default function PDFViewer({ url, onPageChange, onTextSelect, scrollToPag
             <div
               ref={textLayerRef}
               className="textLayer"
-              style={{
-                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                pointerEvents: cropMode ? 'none' : undefined,
-              }}
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
             />
-            {cropMode && (
-              <CropOverlay
-                canvasRef={canvasRef}
-                onCropComplete={onCropComplete}
-                onCancel={onCancelCrop}
-              />
-            )}
           </div>
         )}
       </div>

@@ -1,4 +1,4 @@
-from typing import Generator, Optional
+from typing import Generator
 from services import pdf_parser, chunker, embedder, vector_store, llm_client
 
 
@@ -27,7 +27,7 @@ def process_pdf_for_rag(session_id: str, pdf_bytes: bytes) -> None:
         print(f"[rag_pipeline] ERROR for session {session_id}: {e}")
 
 
-def generate_chat_response(session_id: str, user_message: str, current_page: int, image_data: Optional[str] = None) -> Generator[str, None, None]:
+def generate_chat_response(session_id: str, user_message: str, current_page: int) -> Generator[str, None, None]:
     query_embedding = embedder.embed_texts([user_message])[0]
     similar_chunks = vector_store.search_similar_chunks(session_id, query_embedding)
     page_text = vector_store.get_page_text(session_id, current_page)
@@ -52,4 +52,4 @@ def generate_chat_response(session_id: str, user_message: str, current_page: int
         f"RELEVANT CONTEXT FROM ELSEWHERE IN THE DOCUMENT:\n{global_context}"
     )
 
-    yield from llm_client.stream_response(system_prompt, user_message, image_data=image_data)
+    yield from llm_client.stream_response(system_prompt, user_message)

@@ -5,8 +5,10 @@ import useSessionStore from '../store/sessionStore'
 import { signOut } from '../services/authService'
 import { uploadPDF } from '../services/pdfService'
 import { fetchUserSessions, deleteSession } from '../services/sessionService'
-import { MAX_PDFS } from '../constants'
+import { MAX_PDFS, MAX_PDF_SIZE_MB, MAX_PDF_PAGES } from '../constants'
 import Skeleton from '../components/ui/Skeleton'
+import useToast from '../hooks/useToast'
+import Toast from '../components/ui/Toast'
 
 export default function DashboardPage() {
   const user = useSessionStore((s) => s.user)
@@ -15,11 +17,11 @@ export default function DashboardPage() {
   const avatarUrl = user?.user_metadata?.avatar_url
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
+  const { toasts, showToast } = useToast()
 
   const [isLoading, setIsLoading] = useState(true)
   const [sessions, setSessions] = useState([])
   const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState(null)
   const [uploadHover, setUploadHover] = useState(false)
 
   const atLimit = sessions.length >= MAX_PDFS
@@ -36,16 +38,23 @@ export default function DashboardPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    setUploading(true)
-    setUploadError(null)
+    if (file.size > MAX_PDF_SIZE_MB * 1024 * 1024) {
+      showToast(`File exceeds ${MAX_PDF_SIZE_MB}MB limit`, 'error')
+      e.target.value = ''
+      return
+    }
 
+    setUploading(true)
     try {
-      const data = await uploadPDF(file, session.access_token)
-      navigate(`/workdesk/${data.session_id}`)
+      await uploadPDF(file, session.access_token)
+      // Refetch so the new card appears — user clicks Continue when ready
+      const updated = await fetchUserSessions(session.access_token)
+      setSessions(updated)
+      showToast('PDF uploaded successfully', 'success')
     } catch (err) {
-      setUploadError(err.message)
-      setUploading(false)
+      showToast(err.message, 'error')
     } finally {
+      setUploading(false)
       e.target.value = ''
     }
   }
@@ -135,12 +144,12 @@ export default function DashboardPage() {
           >
             <Plus size={20} color="var(--text-secondary)" />
             <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-              {uploading ? 'Uploading…' : atLimit ? "You've reached the 3 PDF limit" : 'Upload a PDF'}
+              {uploading ? 'Uploading…' : atLimit ? `You've reached the ${MAX_PDFS} PDF limit` : 'Upload a PDF'}
             </span>
           </div>
-          {uploadError && (
-            <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: '#e03e3e' }}>{uploadError}</p>
-          )}
+          <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+            Max {MAX_PDF_SIZE_MB}MB &middot; Max {MAX_PDF_PAGES} pages &middot; {MAX_PDFS} PDFs per account
+          </p>
         </div>
 
         {/* Sessions grid */}
@@ -168,6 +177,8 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+
+      <Toast toasts={toasts} />
     </div>
   )
 }
@@ -243,7 +254,6 @@ function SessionCard({ session, onContinue, onDelete }) {
         <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
           {session.filename}
         </span>
-        {/* Trash icon — visible on hover */}
         {hovered && !confirming && (
           <button
             onClick={(e) => { e.stopPropagation(); setConfirming(true) }}
@@ -257,8 +267,6 @@ function SessionCard({ session, onContinue, onDelete }) {
         )}
       </div>
       <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{date}</span>
-
-      {/* Bottom row — confirm state swaps in over the Continue button */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem', minHeight: '1.5rem' }}>
         {confirming ? (
           <>

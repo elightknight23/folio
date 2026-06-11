@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, X, ALargeSmall, Sparkles } from 'lucide-react'
+import { Send, ALargeSmall, Sparkles } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import useSessionStore from '../../store/sessionStore'
@@ -14,7 +14,7 @@ const FONT_SIZE_DEFAULT = 14
 const FONT_SIZE_MIN = 12
 const FONT_SIZE_MAX = 32
 
-export default function AIChat({ pendingImage, onClearImage }) {
+export default function AIChat() {
   const session = useSessionStore((s) => s.session)
   const activeSession = useSessionStore((s) => s.activeSession)
   const currentPage = usePdfStore((s) => s.currentPage)
@@ -42,26 +42,23 @@ export default function AIChat({ pendingImage, onClearImage }) {
     localStorage.setItem(FONT_SIZE_KEY, n)
   }
 
-  const send = useCallback(async (msg, imageData = null) => {
+  const send = useCallback(async (msg) => {
     if (!msg || isTyping || !activeSession?.id) return
     addMessage({ role: 'user', content: msg })
     addMessage({ role: 'assistant', content: '' })
     setTyping(true)
     try {
-      const gen = streamMessage(activeSession.id, msg, currentPage, session.access_token, imageData)
+      const gen = streamMessage(activeSession.id, msg, currentPage, session.access_token)
       for await (const token of gen) {
         appendToLastMessage(token)
       }
     } catch (err) {
-      // Remove the empty assistant bubble so the UI doesn't get stuck
       removeLastMessage()
       showToast(err.message ?? 'Something went wrong', 'error')
-      console.error('[AIChat] stream error:', err)
     } finally {
       setTyping(false)
-      onClearImage?.()
     }
-  }, [isTyping, activeSession, currentPage, session, addMessage, appendToLastMessage, setTyping, removeLastMessage, onClearImage, showToast])
+  }, [isTyping, activeSession, currentPage, session, addMessage, appendToLastMessage, setTyping, removeLastMessage, showToast])
 
   // Tooltip actions write pendingPrompt to chatStore; pick it up and send automatically
   useEffect(() => {
@@ -73,12 +70,10 @@ export default function AIChat({ pendingImage, onClearImage }) {
   }, [pendingPrompt, isTyping, send, clearPendingPrompt])
 
   async function handleSend() {
-    // Allow send when image is attached even if no text typed
-    const msg = input.trim() || (pendingImage ? 'Describe this image.' : '')
+    const msg = input.trim()
     if (!msg) return
     setInput('')
-    const imageData = pendingImage ? (pendingImage.split(',')[1] ?? null) : null
-    await send(msg, imageData)
+    await send(msg)
   }
 
   function handleKeyDown(e) {
@@ -88,7 +83,7 @@ export default function AIChat({ pendingImage, onClearImage }) {
     }
   }
 
-  const canSend = !isTyping && (input.trim().length > 0 || !!pendingImage)
+  const canSend = !isTyping && input.trim().length > 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', fontSize: `${fontSize}px` }}>
@@ -171,30 +166,6 @@ export default function AIChat({ pendingImage, onClearImage }) {
 
         <div ref={messagesEndRef} />
       </div>
-
-      {/* Attached image thumbnail */}
-      {pendingImage && (
-        <div style={{ padding: '0.5rem 0.75rem 0', flexShrink: 0 }}>
-          <div style={{ position: 'relative', display: 'inline-block' }}>
-            <img
-              src={pendingImage}
-              alt="Attached crop"
-              style={{ height: '64px', borderRadius: '6px', border: '1px solid var(--border)', display: 'block' }}
-            />
-            <button
-              onClick={onClearImage}
-              style={{
-                position: 'absolute', top: '-6px', right: '-6px',
-                width: '18px', height: '18px', borderRadius: '50%',
-                background: 'var(--text-secondary)', border: 'none',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
-              }}
-            >
-              <X size={10} color="white" />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Input */}
       <div style={{
