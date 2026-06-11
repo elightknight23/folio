@@ -1,8 +1,9 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Sun, Moon, PanelRightClose, PanelRightOpen, Scissors, BotMessageSquare, Maximize2, Minimize2 } from 'lucide-react'
+import { ArrowLeft, Sun, Moon, PanelRightClose, PanelRightOpen, Scissors, BotMessageSquare, Maximize2, Minimize2, NotebookPen } from 'lucide-react'
 import PDFViewer from '../pdf/PDFViewer'
 import AIChat from '../chat/AIChat'
+import NotesPanel from '../notes/NotesPanel'
 import SelectionTooltip from '../ui/Tooltip'
 import useLayoutStore from '../../store/layoutStore'
 import useSessionStore from '../../store/sessionStore'
@@ -32,10 +33,10 @@ export default function Workdesk({ pdfUrl }) {
 
   const [leftPct, setLeftPct] = useState(DEFAULT_LEFT_PCT)
   const [dividerHover, setDividerHover] = useState(false)
-  const [isDragging, setIsDragging] = useState(false)   // Fix 6: suppress transition during drag
+  const [isDragging, setIsDragging] = useState(false)
 
-  // Fix 5: AI-only mode collapses PDF panel to give full width to chat
   const [aiOnlyMode, setAiOnlyMode] = useState(false)
+  const [notesPanelOpen, setNotesPanelOpen] = useState(false)
 
   // Native fullscreen
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -60,7 +61,6 @@ export default function Workdesk({ pdfUrl }) {
   const [pendingImage, setPendingImage] = useState(null)
 
   const filename = activeSession?.filename ?? 'Untitled Document'
-
   const panelTransition = isDragging ? 'none' : PANEL_TRANSITION
 
   const onDividerMouseDown = useCallback((e) => {
@@ -96,7 +96,6 @@ export default function Workdesk({ pdfUrl }) {
   function handleTooltipAction(action, text) {
     const prompt = `${action} the following text: "${text}"`
     if (!aiPanelOpen) toggleAiPanel()
-    if (aiOnlyMode === false && !aiPanelOpen) setAiOnlyMode(false)
     useChatStore.getState().setPendingPrompt(prompt)
     setSelectionInfo(null)
     window.getSelection()?.removeAllRanges()
@@ -113,9 +112,10 @@ export default function Workdesk({ pdfUrl }) {
     setAiOnlyMode((v) => !v)
   }
 
-  // Compute left panel width
-  const leftWidth = aiOnlyMode ? '0%' : aiPanelOpen ? `${leftPct}%` : '100%'
-  const rightWidth = aiOnlyMode ? '100%' : aiPanelOpen ? `${100 - leftPct}%` : '0px'
+  // "Any panel open" drives PDF width and divider visibility
+  const anyPanelOpen = aiPanelOpen || notesPanelOpen
+  const leftWidth = aiOnlyMode ? '0%' : anyPanelOpen ? `${leftPct}%` : '100%'
+  const rightWidth = aiOnlyMode ? '100%' : anyPanelOpen ? `${100 - leftPct}%` : '0px'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)' }}>
@@ -160,6 +160,13 @@ export default function Workdesk({ pdfUrl }) {
             <Scissors size={16} />
           </IconButton>
           <IconButton
+            onClick={() => setNotesPanelOpen((v) => !v)}
+            title={notesPanelOpen ? 'Close notes' : 'Open notes'}
+            active={notesPanelOpen}
+          >
+            <NotebookPen size={16} />
+          </IconButton>
+          <IconButton
             onClick={toggleAiOnly}
             title={aiOnlyMode ? 'Back to split view' : 'AI-only mode'}
             active={aiOnlyMode}
@@ -183,7 +190,8 @@ export default function Workdesk({ pdfUrl }) {
 
       {/* Panels */}
       <div ref={containerRef} style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Left — PDF. --pdf-bg is slightly darker than --bg so the white page looks like paper on a desk */}
+
+        {/* Left — PDF */}
         <div style={{
           width: leftWidth,
           display: 'flex', flexDirection: 'column',
@@ -201,13 +209,13 @@ export default function Workdesk({ pdfUrl }) {
           />
         </div>
 
-        {/* Resize divider — hidden when AI-only or panel closed */}
+        {/* Drag divider — hidden when no right panels open or in AI-only mode */}
         <div
           onMouseDown={onDividerMouseDown}
           onMouseEnter={() => setDividerHover(true)}
           onMouseLeave={() => setDividerHover(false)}
           style={{
-            width: aiPanelOpen && !aiOnlyMode ? '4px' : '0px',
+            width: anyPanelOpen && !aiOnlyMode ? '4px' : '0px',
             cursor: 'col-resize',
             background: dividerHover ? 'var(--accent)' : 'var(--border)',
             flexShrink: 0, overflow: 'hidden',
@@ -215,19 +223,42 @@ export default function Workdesk({ pdfUrl }) {
           }}
         />
 
-        {/* Right — AI panel */}
+        {/* Right container — holds Notes + AI side by side */}
         <div style={{
           width: rightWidth,
-          overflow: 'hidden', display: 'flex', flexDirection: 'column',
-          background: 'var(--surface)', borderLeft: '1px solid var(--border)',
+          display: 'flex', overflow: 'hidden',
           transition: panelTransition,
         }}>
-          <div style={{ width: '100%', minWidth: '300px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <AIChat
-              pendingImage={pendingImage}
-              onClearImage={() => setPendingImage(null)}
-            />
+
+          {/* Notes panel — fixed 260px, clipped by right container overflow:hidden */}
+          <div style={{
+            width: notesPanelOpen && !aiOnlyMode ? '260px' : '0px',
+            flexShrink: 0, overflow: 'hidden',
+            display: 'flex', flexDirection: 'column',
+            background: 'var(--surface)',
+            borderRight: '1px solid var(--border)',
+            transition: panelTransition,
+          }}>
+            <div style={{ width: '260px', minWidth: '260px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <NotesPanel />
+            </div>
           </div>
+
+          {/* AI panel — fills remaining right-side space */}
+          <div style={{
+            flex: 1, minWidth: 0, overflow: 'hidden',
+            display: 'flex', flexDirection: 'column',
+            background: 'var(--surface)',
+            borderLeft: notesPanelOpen && !aiOnlyMode ? 'none' : '1px solid var(--border)',
+          }}>
+            <div style={{ width: '100%', minWidth: '300px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <AIChat
+                pendingImage={pendingImage}
+                onClearImage={() => setPendingImage(null)}
+              />
+            </div>
+          </div>
+
         </div>
       </div>
 

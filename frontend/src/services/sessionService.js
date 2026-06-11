@@ -16,6 +16,19 @@ export async function fetchSessionDetail(sessionId, accessToken) {
   return res.json() // session object + signed_url
 }
 
+export async function updateSession(sessionId, data, accessToken) {
+  const res = await fetch(`${BACKEND_URL}/sessions/${sessionId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('Failed to update session')
+  return res.json()
+}
+
 export async function deleteSession(sessionId, accessToken) {
   const res = await fetch(`${BACKEND_URL}/sessions/${sessionId}`, {
     method: 'DELETE',

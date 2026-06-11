@@ -25,5 +25,10 @@ def get_session_by_id(session_id: str) -> dict | None:
     return res.data
 
 
+def update_session(session_id: str, data: dict) -> dict:
+    res = _client.table(TABLE).update(data).eq("id", session_id).execute()
+    return res.data[0]
+
+
 def delete_session(session_id: str) -> None:
     _client.table(TABLE).delete().eq("id", session_id).execute()
