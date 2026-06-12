@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, ALargeSmall, Sparkles } from 'lucide-react'
+import { Send, ALargeSmall, Sparkles, FileText } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import useSessionStore from '../../store/sessionStore'
@@ -233,6 +233,57 @@ export default function AIChat() {
   )
 }
 
+/* ============================================================
+   CLICKABLE CITATIONS (F6) — the AI emits [Page X](#page-X)
+   links; we intercept anchors whose href matches and render a
+   pill that jumps the PDFViewer to that page via pdfStore.
+   ============================================================ */
+
+const PAGE_HREF_RE = /^#page-(\d+)$/
+
+function MarkdownLink({ href, children }) {
+  const match = href?.match(PAGE_HREF_RE)
+  if (match) return <CitationPill page={Number(match[1])} />
+  // Genuine external link — open safely in a new tab
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>
+      {children}
+    </a>
+  )
+}
+
+function CitationPill({ page }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <button
+      onClick={() => usePdfStore.getState().setJumpToPage(page)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      title={`Jump to page ${page}`}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: '4px',
+        padding: '1px 9px', margin: '0 1px',
+        verticalAlign: 'baseline',
+        background: hovered
+          ? 'color-mix(in srgb, var(--accent) 10%, var(--surface))'
+          : 'var(--surface)',
+        border: `1px solid ${hovered ? 'color-mix(in srgb, var(--accent) 45%, var(--border))' : 'var(--border)'}`,
+        borderRadius: '999px',
+        color: 'var(--accent)',
+        fontFamily: 'inherit', fontSize: '0.82em', fontWeight: 500,
+        lineHeight: 1.5,
+        cursor: 'pointer',
+        transition: 'background var(--dur-fast) ease, border-color var(--dur-fast) ease',
+      }}
+    >
+      <FileText size={11} style={{ flexShrink: 0 }} />
+      Page {page}
+    </button>
+  )
+}
+
+const MD_COMPONENTS = { a: MarkdownLink }
+
 /**
  * ChatGPT-style thread rows — user prompt sits in a soft block at the top of
  * the exchange, the reply renders as full-width prose right below it, so long
@@ -266,7 +317,7 @@ function MessageRow({ message }) {
       {message.content
         ? (
           <div className="prose prose-sm max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
               {message.content}
             </ReactMarkdown>
           </div>

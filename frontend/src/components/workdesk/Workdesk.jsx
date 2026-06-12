@@ -51,6 +51,16 @@ export default function Workdesk({ pdfUrl }) {
     }, 300)
   }, [])
 
+  // Clickable citations (F6) — chat pills write jumpToPage; consume it,
+  // scroll the PDF via the viewer's existing ref API, then reset to null
+  const jumpToPage = usePdfStore((s) => s.jumpToPage)
+  useEffect(() => {
+    if (jumpToPage == null) return
+    openPanel('pdf') // no-op if already open; closed panels stay mounted, so the ref is live
+    scrollToPageRef.current?.(jumpToPage)
+    usePdfStore.getState().setJumpToPage(null)
+  }, [jumpToPage, openPanel])
+
   // Relative panel widths — pct of desk = weight / sum(open weights)
   const [weights, setWeights] = useState(loadWeights)
   const [isDragging, setIsDragging] = useState(false)
