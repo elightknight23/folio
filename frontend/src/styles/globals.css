@@ -213,6 +213,37 @@ body {
   opacity: 0.45;
 }
 
+/* Note editor — contentEditable placeholder + bullet list spacing */
+.note-editor:empty::before {
+  content: attr(data-placeholder);
+  color: currentColor;
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.note-editor ul,
+.note-editor ol {
+  margin: 0.2em 0;
+  padding-left: 1.3em;
+}
+
+.note-editor li {
+  margin: 0.1em 0;
+}
+
+/* Formatting toolbar — hidden until the note is hovered or being edited */
+.note-toolbar {
+  opacity: 0;
+  transition: opacity var(--dur-fast) ease;
+  pointer-events: none;
+}
+
+.sticky-note:hover .note-toolbar,
+.note-editor-wrap:focus-within .note-toolbar {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 @keyframes note-in {
   from { opacity: 0; transform: rotate(var(--note-tilt, 0deg)) scale(0.92) translateY(8px); }
   to   { opacity: 1; transform: rotate(var(--note-tilt, 0deg)) scale(1) translateY(0); }

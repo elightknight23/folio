@@ -150,69 +150,82 @@ export default function AIChat() {
         </div>
       </div>
 
-      {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {messages.length === 0 && (
-          <EmptyState onHint={setInput} />
-        )}
+      {/* Messages — single centered column, ChatGPT-style thread */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.25rem 0.5rem', display: 'flex', flexDirection: 'column' }}>
+        <div style={{
+          width: '100%', maxWidth: '760px', margin: '0 auto',
+          flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5rem',
+        }}>
+          {messages.length === 0 && (
+            <EmptyState onHint={setInput} />
+          )}
 
-        {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} />
-        ))}
+          {messages.map((msg) => (
+            <MessageRow key={msg.id} message={msg} />
+          ))}
 
-        {isTyping && messages[messages.length - 1]?.content === '' && (
-          <TypingIndicator />
-        )}
+          {isTyping && messages[messages.length - 1]?.content === '' && (
+            <TypingIndicator />
+          )}
 
-        <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
-      {/* Input */}
-      <div style={{
-        padding: '0.75rem', borderTop: '1px solid var(--border)',
-        display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexShrink: 0,
-      }}>
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Ask about this PDF…"
-          rows={1}
-          disabled={isTyping}
+      {/* Input — same column width as the thread */}
+      <div style={{ padding: '0.75rem 1.25rem 1rem', flexShrink: 0 }}>
+        <div
           style={{
-            flex: 1, resize: 'none',
-            border: '1px solid var(--border)', borderRadius: '11px',
-            padding: '0.55rem 0.8rem', fontFamily: 'inherit', fontSize: 'inherit',
-            background: 'var(--bg)', color: 'var(--text-primary)',
-            outline: 'none', lineHeight: 1.5, opacity: isTyping ? 0.6 : 1,
+            width: '100%', maxWidth: '760px', margin: '0 auto',
+            display: 'flex', gap: '0.5rem', alignItems: 'flex-end',
+            border: '1px solid var(--border)', borderRadius: '14px',
+            background: 'var(--bg)',
+            padding: '0.45rem 0.45rem 0.45rem 0.9rem',
+            boxShadow: 'var(--shadow-sm)',
             transition: 'border-color var(--dur-fast) ease, box-shadow var(--dur-med) var(--ease-out)',
           }}
-          onFocus={(e) => {
+          onFocusCapture={(e) => {
             e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent) 55%, var(--border))'
             e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent)'
           }}
-          onBlur={(e) => {
+          onBlurCapture={(e) => {
             e.currentTarget.style.borderColor = 'var(--border)'
-            e.currentTarget.style.boxShadow = 'none'
+            e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
           }}
-        />
-        <button
-          onClick={handleSend}
-          disabled={!canSend}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: '36px', height: '36px', flexShrink: 0,
-            background: canSend ? 'var(--accent)' : 'var(--surface-2)',
-            border: 'none', borderRadius: '11px',
-            cursor: canSend ? 'pointer' : 'not-allowed',
-            boxShadow: canSend ? '0 2px 14px color-mix(in srgb, var(--accent) 35%, transparent)' : 'none',
-            transition: 'background var(--dur-fast) ease, box-shadow var(--dur-med) var(--ease-out), transform var(--dur-fast) var(--ease-spring)',
-          }}
-          onMouseEnter={(e) => { if (canSend) e.currentTarget.style.transform = 'scale(1.06)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
         >
-          <Send size={15} color={canSend ? 'var(--on-accent)' : 'var(--text-secondary)'} />
-        </button>
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask about this PDF…"
+            rows={1}
+            disabled={isTyping}
+            style={{
+              flex: 1, resize: 'none',
+              border: 'none',
+              padding: '0.35rem 0', fontFamily: 'inherit', fontSize: 'inherit',
+              background: 'transparent', color: 'var(--text-primary)',
+              outline: 'none', lineHeight: 1.5, opacity: isTyping ? 0.6 : 1,
+            }}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!canSend}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '34px', height: '34px', flexShrink: 0,
+              background: canSend ? 'var(--accent)' : 'var(--surface-2)',
+              border: 'none', borderRadius: '10px',
+              cursor: canSend ? 'pointer' : 'not-allowed',
+              boxShadow: canSend ? '0 2px 14px color-mix(in srgb, var(--accent) 35%, transparent)' : 'none',
+              transition: 'background var(--dur-fast) ease, box-shadow var(--dur-med) var(--ease-out), transform var(--dur-fast) var(--ease-spring)',
+            }}
+            onMouseEnter={(e) => { if (canSend) e.currentTarget.style.transform = 'scale(1.06)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+          >
+            <Send size={15} color={canSend ? 'var(--on-accent)' : 'var(--text-secondary)'} />
+          </button>
+        </div>
       </div>
 
       <Toast toasts={toasts} />
@@ -220,38 +233,46 @@ export default function AIChat() {
   )
 }
 
-function MessageBubble({ message }) {
+/**
+ * ChatGPT-style thread rows — user prompt sits in a soft block at the top of
+ * the exchange, the reply renders as full-width prose right below it, so long
+ * answers use the whole column.
+ */
+function MessageRow({ message }) {
   const isUser = message.role === 'user'
-  return (
-    <div className="msg-enter" style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
-      <div style={{
-        maxWidth: '85%', padding: '0.6rem 0.85rem',
-        borderRadius: isUser ? '16px 16px 4px 16px' : '4px 16px 16px 16px',
-        lineHeight: 1.6,
-        background: isUser
-          ? 'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 78%, var(--text-primary)))'
-          : 'var(--surface-2)',
-        color: isUser ? 'var(--on-accent)' : 'var(--text-primary)',
-        border: isUser ? 'none' : '1px solid var(--border)',
-        boxShadow: isUser
-          ? '0 2px 12px color-mix(in srgb, var(--accent) 25%, transparent)'
-          : 'var(--shadow-sm)',
-        whiteSpace: isUser ? 'pre-wrap' : undefined,
-        wordBreak: 'break-word',
-      }}>
-        {isUser
-          ? (message.content || <span style={{ opacity: 0.4 }}>…</span>)
-          : message.content
-            ? (
-              <div className="prose prose-sm max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {message.content}
-                </ReactMarkdown>
-              </div>
-            )
-            : <span style={{ opacity: 0.4 }}>…</span>
-        }
+
+  if (isUser) {
+    return (
+      <div className="msg-enter" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{
+          maxWidth: '80%',
+          padding: '0.6rem 0.95rem',
+          borderRadius: '16px',
+          lineHeight: 1.6,
+          background: 'var(--surface-2)',
+          color: 'var(--text-primary)',
+          border: '1px solid var(--border)',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+        }}>
+          {message.content || <span style={{ opacity: 0.4 }}>…</span>}
+        </div>
       </div>
+    )
+  }
+
+  return (
+    <div className="msg-enter" style={{ width: '100%', lineHeight: 1.65, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+      {message.content
+        ? (
+          <div className="prose prose-sm max-w-none">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {message.content}
+            </ReactMarkdown>
+          </div>
+        )
+        : <span style={{ opacity: 0.4 }}>…</span>
+      }
     </div>
   )
 }
@@ -305,22 +326,15 @@ function HintButton({ label, onClick }) {
 
 function TypingIndicator() {
   return (
-    <div className="msg-enter" style={{ display: 'flex', justifyContent: 'flex-start' }}>
-      <div style={{
-        padding: '0.6rem 0.9rem', borderRadius: '4px 16px 16px 16px',
-        background: 'var(--surface-2)', border: '1px solid var(--border)',
-        boxShadow: 'var(--shadow-sm)',
-        display: 'flex', gap: '4px', alignItems: 'center',
-      }}>
-        {[0, 1, 2].map((i) => (
-          <div key={i} style={{
-            width: '6px', height: '6px', borderRadius: '50%',
-            background: 'var(--text-secondary)',
-            animation: 'skeleton-pulse 1.2s ease-in-out infinite',
-            animationDelay: `${i * 0.2}s`,
-          }} />
-        ))}
-      </div>
+    <div className="msg-enter" style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '0.2rem 0' }}>
+      {[0, 1, 2].map((i) => (
+        <div key={i} style={{
+          width: '6px', height: '6px', borderRadius: '50%',
+          background: 'var(--text-secondary)',
+          animation: 'skeleton-pulse 1.2s ease-in-out infinite',
+          animationDelay: `${i * 0.2}s`,
+        }} />
+      ))}
     </div>
   )
 }

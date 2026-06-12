@@ -1,7 +1,8 @@
 import { useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FileText, Plus, Trash2 } from 'lucide-react'
+import { FileText, Plus, Trash2, Sun, Moon } from 'lucide-react'
 import useSessionStore from '../store/sessionStore'
+import useLayoutStore from '../store/layoutStore'
 import { signOut } from '../services/authService'
 import { uploadPDF } from '../services/pdfService'
 import { fetchUserSessions, deleteSession } from '../services/sessionService'
@@ -77,6 +78,7 @@ export default function DashboardPage() {
       }}>
         <span style={{ fontWeight: 700, fontSize: '1.45rem', color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>folio</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <ThemeToggle />
           {avatarUrl && (
             <img
               src={avatarUrl}
@@ -199,6 +201,33 @@ export default function DashboardPage() {
 
       <Toast toasts={toasts} />
     </div>
+  )
+}
+
+function ThemeToggle() {
+  const theme = useLayoutStore((s) => s.theme)
+  const setTheme = useLayoutStore((s) => s.setTheme)
+  const [hovered, setHovered] = useState(false)
+  return (
+    <button
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: '32px', height: '32px',
+        background: hovered ? 'var(--surface-2)' : 'transparent',
+        border: '1px solid transparent',
+        borderRadius: '8px',
+        color: 'var(--text-secondary)',
+        cursor: 'pointer',
+        transform: hovered ? 'rotate(12deg)' : 'rotate(0deg)',
+        transition: 'background var(--dur-fast) ease, transform var(--dur-med) var(--ease-spring)',
+      }}
+    >
+      {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+    </button>
   )
 }
 

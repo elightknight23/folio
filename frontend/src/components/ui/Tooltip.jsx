@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { StickyNote } from 'lucide-react'
 
 const ACTIONS = ['Explain', 'Define', 'Summarize']
 
@@ -37,6 +38,7 @@ export default function SelectionTooltip({ text, rect, onAction, onDismiss }) {
         borderRadius: '8px',
         boxShadow: '0 4px 16px rgba(0,0,0,0.14)',
         display: 'flex',
+        alignItems: 'center',
         gap: '2px',
         padding: '4px',
         userSelect: 'none',
@@ -53,11 +55,23 @@ export default function SelectionTooltip({ text, rect, onAction, onDismiss }) {
           }}
         />
       ))}
+
+      {/* Divider — note creation is a different kind of action */}
+      <div style={{ width: '1px', alignSelf: 'stretch', margin: '3px 2px', background: 'var(--border)' }} />
+
+      <TooltipButton
+        label="Note"
+        icon={<StickyNote size={12} />}
+        onMouseDown={(e) => {
+          e.preventDefault()
+          onAction('Note', text)
+        }}
+      />
     </div>
   )
 }
 
-function TooltipButton({ label, onMouseDown }) {
+function TooltipButton({ label, icon, onMouseDown }) {
   const [hovered, setHovered] = useState(false)
   return (
     <button
@@ -65,6 +79,9 @@ function TooltipButton({ label, onMouseDown }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '5px',
         background: hovered ? 'var(--border)' : 'none',
         border: 'none',
         borderRadius: '6px',
@@ -77,6 +94,7 @@ function TooltipButton({ label, onMouseDown }) {
         transition: 'background 0.1s',
       }}
     >
+      {icon}
       {label}
     </button>
   )
