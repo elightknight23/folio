@@ -36,9 +36,28 @@ function persistPanels(panels) {
   return panels
 }
 
+// PDF view preferences — persisted like theme/panels
+const storedViewMode = localStorage.getItem('folio-pdf-view')
+const initialViewMode = storedViewMode === 'single' ? 'single' : 'continuous'
+const initialSidebarOpen = localStorage.getItem('folio-pdf-sidebar') === 'true'
+
 const useLayoutStore = create((set) => ({
   theme: initialTheme,
   panels: loadPanels(),
+  pdfViewMode: initialViewMode, // 'continuous' | 'single'
+  sidebarOpen: initialSidebarOpen,
+
+  setPdfViewMode: (pdfViewMode) => {
+    localStorage.setItem('folio-pdf-view', pdfViewMode)
+    set({ pdfViewMode })
+  },
+
+  toggleSidebar: () =>
+    set((s) => {
+      const sidebarOpen = !s.sidebarOpen
+      localStorage.setItem('folio-pdf-sidebar', String(sidebarOpen))
+      return { sidebarOpen }
+    }),
 
   setTheme: (theme) => {
     document.documentElement.setAttribute('data-theme', theme)
