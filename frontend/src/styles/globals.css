@@ -1,19 +1,56 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=DM+Serif+Display&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   FOLIO DESIGN SYSTEM
+   Cinematic dark default · editorial light · tactile depth
+   ============================================================ */
+
 :root {
+  /* Light — Notion paper: white, warm gray, soft ink */
   --bg: #FFFFFF;
   --surface: #F7F7F5;
+  --surface-2: #EFEFED;
   --text-primary: #191919;
   --text-secondary: #787774;
   --border: #E9E9E7;
+  --border-strong: #DBDBD8;
   --accent: #2383E2;
+  --accent-hover: #1B74CE;
   --on-accent: #FFFFFF;
-  /* Slightly darker than --bg so the white PDF page looks like paper on a desk */
-  --pdf-bg: #EBEBEA;
+  --pdf-bg: #F1F1EF;
+
+  /* Depth — layered, diffuse */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 6px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.05), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.06), 0 16px 48px rgba(0, 0, 0, 0.10);
+  --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--accent) 24%, transparent), 0 4px 24px color-mix(in srgb, var(--accent) 18%, transparent);
+
+  /* Glass */
+  --glass-bg: color-mix(in srgb, var(--bg) 72%, transparent);
+  --glass-border: color-mix(in srgb, var(--border) 80%, transparent);
+
+  /* Sticky notes — warm paper tones (light) */
+  --note-yellow-bg: #FAF1C7;
+  --note-yellow-ink: #5F520F;
+  --note-blue-bg: #DDEBF1;
+  --note-blue-ink: #2C4C57;
+  --note-pink-bg: #FAE3E9;
+  --note-pink-ink: #6E3349;
+  --note-green-bg: #DDEDEA;
+  --note-green-ink: #2A5447;
+  --note-tape: rgba(255, 255, 255, 0.45);
+  --note-tape-border: rgba(0, 0, 0, 0.05);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);          /* expo out — snappy settle */
+  --ease-spring: cubic-bezier(0.34, 1.25, 0.64, 1);   /* slight overshoot */
+  --dur-fast: 150ms;
+  --dur-med: 300ms;
+  --dur-slow: 600ms;
 
   /* Aliases — keep Tailwind/PDFViewer classes working without touching that file */
   --color-background: var(--bg);
@@ -22,18 +59,43 @@
   --color-text-secondary: var(--text-secondary);
   --color-border: var(--border);
   --color-accent: var(--accent);
-  --radius: 6px;
+  --radius: 8px;
+  --radius-lg: 14px;
 }
 
 [data-theme="dark"] {
+  /* Dark — Notion charcoal: elevated grays, same blue */
   --bg: #191919;
   --surface: #202020;
+  --surface-2: #282828;
   --text-primary: #FFFFFF;
-  --text-secondary: #787774;
+  --text-secondary: #9B9A97;
   --border: #2F2F2F;
+  --border-strong: #3D3D3D;
   --accent: #2383E2;
-  /* Darker than --bg so the rendered PDF pops as a brighter card */
-  --pdf-bg: #111111;
+  --accent-hover: #4595E8;
+  --on-accent: #FFFFFF;
+  --pdf-bg: #141414;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 6px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.30);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.4), 0 16px 48px rgba(0, 0, 0, 0.45);
+  --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), 0 4px 32px color-mix(in srgb, var(--accent) 22%, transparent);
+
+  --glass-bg: color-mix(in srgb, var(--surface) 68%, transparent);
+  --glass-border: color-mix(in srgb, var(--border-strong) 70%, transparent);
+
+  /* Sticky notes — muted deep paper (dark) */
+  --note-yellow-bg: #38321B;
+  --note-yellow-ink: #E8D98A;
+  --note-blue-bg: #1E2E36;
+  --note-blue-ink: #9CC4D4;
+  --note-pink-bg: #392530;
+  --note-pink-ink: #DFA8B9;
+  --note-green-bg: #1F312C;
+  --note-green-ink: #9CC9BD;
+  --note-tape: rgba(255, 255, 255, 0.10);
+  --note-tape-border: rgba(255, 255, 255, 0.06);
 }
 
 * {
@@ -53,30 +115,128 @@ body {
   background-color: var(--bg);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv11', 'ss01';
+  letter-spacing: -0.011em;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+/* ============================================================
+   MOTION PRIMITIVES
+   .fade-up        — staggered page-load reveal (pair with inline animationDelay)
+   .msg-enter      — chat bubble slide+fade entrance
+   .scale-in       — pop-in for overlays/toasts
+   ============================================================ */
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes msg-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.fade-up {
+  opacity: 0;
+  animation: fade-up var(--dur-slow) var(--ease-out) forwards;
+}
+
+.msg-enter {
+  animation: msg-in 320ms var(--ease-out) both;
+}
+
+.scale-in {
+  animation: scale-in 220ms var(--ease-spring) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-up, .msg-enter, .scale-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ============================================================
+   STICKY NOTES — paper card with tape, slight tilt, lift on hover
+   Set --note-tilt inline per note for a natural, uneven stack.
+   ============================================================ */
+
+.sticky-note {
+  position: relative;
+  border-radius: 2px 2px 10px 2px;
+  transform: rotate(var(--note-tilt, 0deg));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10), 0 5px 12px rgba(0, 0, 0, 0.07);
+  transition:
+    transform var(--dur-med) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out);
+}
+
+.sticky-note:hover,
+.sticky-note:focus-within {
+  transform: rotate(0deg) translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.10), 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Tape strip across the top edge */
+.sticky-note::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 44px;
+  height: 15px;
+  transform: translateX(-50%) rotate(-2deg);
+  background: var(--note-tape);
+  border: 1px solid var(--note-tape-border);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.sticky-note textarea::placeholder {
+  color: currentColor;
+  opacity: 0.45;
+}
+
+@keyframes note-in {
+  from { opacity: 0; transform: rotate(var(--note-tilt, 0deg)) scale(0.92) translateY(8px); }
+  to   { opacity: 1; transform: rotate(var(--note-tilt, 0deg)) scale(1) translateY(0); }
+}
+
+.sticky-note.note-enter {
+  animation: note-in 280ms var(--ease-spring) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sticky-note.note-enter { animation: none; }
+}
+
+/* Glass utility — frosted panel */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid var(--glass-border);
 }
 
 @keyframes skeleton-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
-}
-
-/* Wire Tailwind's prose tokens to our CSS variables so markdown inherits the theme */
-.prose {
-  --tw-prose-body: var(--text-primary);
-  --tw-prose-headings: var(--text-primary);
-  --tw-prose-lead: var(--text-secondary);
-  --tw-prose-links: var(--accent);
-  --tw-prose-bold: var(--text-primary);
-  --tw-prose-counters: var(--text-secondary);
-  --tw-prose-bullets: var(--text-secondary);
-  --tw-prose-hr: var(--border);
-  --tw-prose-code: var(--text-primary);
-  --tw-prose-pre-bg: var(--surface);
-  --tw-prose-th-borders: var(--border);
-  --tw-prose-td-borders: var(--border);
-  max-width: none;
-  font-size: inherit;
-  line-height: 1.6;
 }
 
 /* Font size slider — iOS-style custom track and thumb */
@@ -125,11 +285,30 @@ body {
   cursor: pointer;
 }
 
+/* Wire Tailwind's prose tokens to our CSS variables so markdown inherits the theme */
+.prose {
+  --tw-prose-body: var(--text-primary);
+  --tw-prose-headings: var(--text-primary);
+  --tw-prose-lead: var(--text-secondary);
+  --tw-prose-links: var(--accent);
+  --tw-prose-bold: var(--text-primary);
+  --tw-prose-counters: var(--text-secondary);
+  --tw-prose-bullets: var(--text-secondary);
+  --tw-prose-hr: var(--border);
+  --tw-prose-code: var(--text-primary);
+  --tw-prose-pre-bg: var(--surface);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+  max-width: none;
+  font-size: inherit;
+  line-height: 1.65;
+}
+
 /* Paragraph and list spacing inside chat bubbles */
 .prose p { margin-top: 0.5em; margin-bottom: 0.5em; }
 .prose p:first-child { margin-top: 0; }
 .prose p:last-child { margin-bottom: 0; }
 .prose ul, .prose ol { margin-top: 0.4em; margin-bottom: 0.4em; padding-left: 1.4em; }
 .prose li { margin-top: 0.15em; margin-bottom: 0.15em; }
-.prose h1, .prose h2, .prose h3 { margin-top: 0.8em; margin-bottom: 0.3em; font-weight: 600; }
+.prose h1, .prose h2, .prose h3 { margin-top: 0.8em; margin-bottom: 0.3em; font-weight: 600; letter-spacing: -0.015em; }
 .prose h1:first-child, .prose h2:first-child, .prose h3:first-child { margin-top: 0; }

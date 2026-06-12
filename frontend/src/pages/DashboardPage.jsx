@@ -62,16 +62,20 @@ export default function DashboardPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
       {/* Navbar */}
-      <header style={{
+      <header className="glass" style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 2.5rem',
-        height: '70px',
-        borderBottom: '1px solid var(--border)',
-        background: 'var(--bg)',
+        height: '64px',
+        borderLeft: 'none',
+        borderRight: 'none',
+        borderTop: 'none',
       }}>
-        <span style={{ fontWeight: 1000, fontSize: '2.3rem', color: 'var(--text-primary)', letterSpacing: '-0.005em' }}>folio</span>
+        <span style={{ fontWeight: 700, fontSize: '1.45rem', color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>folio</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {avatarUrl && (
             <img
@@ -110,12 +114,12 @@ export default function DashboardPage() {
         flexDirection: 'column',
         gap: '2rem',
       }}>
-        <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 400, fontFamily: "'DM Serif Display', serif", color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+        <h1 className="fade-up" style={{ margin: 0, fontSize: '1.9rem', fontWeight: 400, fontFamily: "'DM Serif Display', serif", color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
           Your Library
         </h1>
 
         {/* Upload area */}
-        <div>
+        <div className="fade-up" style={{ animationDelay: '80ms' }}>
           <input
             ref={fileInputRef}
             type="file"
@@ -128,28 +132,42 @@ export default function DashboardPage() {
             onMouseEnter={() => setUploadHover(true)}
             onMouseLeave={() => setUploadHover(false)}
             style={{
-              border: '1.5px dashed var(--border)',
-              borderRadius: '8px',
-              padding: '2rem',
+              border: `1.5px dashed ${uploadHover && !atLimit ? 'color-mix(in srgb, var(--accent) 50%, var(--border))' : 'var(--border)'}`,
+              borderRadius: 'var(--radius-lg)',
+              padding: '2.5rem 2rem',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '0.5rem',
+              gap: '0.65rem',
               cursor: atLimit || uploading ? 'not-allowed' : 'pointer',
               background: uploadHover && !atLimit ? 'var(--surface)' : 'transparent',
               opacity: atLimit ? 0.5 : 1,
-              transition: 'background 0.15s',
+              boxShadow: uploadHover && !atLimit ? 'var(--shadow-glow)' : 'none',
+              transition: 'background var(--dur-fast) ease, border-color var(--dur-fast) ease, box-shadow var(--dur-med) var(--ease-out)',
             }}
           >
-            <Plus size={20} color="var(--text-secondary)" />
-            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transform: uploadHover && !atLimit ? 'translateY(-2px) scale(1.06)' : 'none',
+              transition: 'transform var(--dur-med) var(--ease-spring)',
+            }}>
+              <Plus size={18} color={uploadHover && !atLimit ? 'var(--accent)' : 'var(--text-secondary)'} style={{ transition: 'color var(--dur-fast) ease' }} />
+            </div>
+            <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 500, letterSpacing: '-0.01em' }}>
               {uploading ? 'Uploading…' : atLimit ? `You've reached the ${MAX_PDFS} PDF limit` : 'Upload a PDF'}
             </span>
+            <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+              Max {MAX_PDF_SIZE_MB}MB &middot; Max {MAX_PDF_PAGES} pages &middot; {MAX_PDFS} PDFs per account
+            </span>
           </div>
-          <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
-            Max {MAX_PDF_SIZE_MB}MB &middot; Max {MAX_PDF_PAGES} pages &middot; {MAX_PDFS} PDFs per account
-          </p>
         </div>
 
         {/* Sessions grid */}
@@ -163,16 +181,17 @@ export default function DashboardPage() {
             gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
             gap: '1rem',
           }}>
-            {sessions.map((s) => (
-              <SessionCard
-                key={s.id}
-                session={s}
-                onContinue={() => navigate(`/workdesk/${s.id}`)}
-                onDelete={async () => {
-                  await deleteSession(s.id, session.access_token)
-                  setSessions((prev) => prev.filter((x) => x.id !== s.id))
-                }}
-              />
+            {sessions.map((s, i) => (
+              <div key={s.id} className="fade-up" style={{ animationDelay: `${160 + i * 70}ms` }}>
+                <SessionCard
+                  session={s}
+                  onContinue={() => navigate(`/workdesk/${s.id}`)}
+                  onDelete={async () => {
+                    await deleteSession(s.id, session.access_token)
+                    setSessions((prev) => prev.filter((x) => x.id !== s.id))
+                  }}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -185,9 +204,21 @@ export default function DashboardPage() {
 
 function EmptyState() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', padding: '4rem 0' }}>
-      <FileText size={40} color="var(--text-secondary)" />
-      <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)', fontSize: '1rem' }}>No PDFs yet</p>
+    <div className="fade-up" style={{ animationDelay: '160ms', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '4.5rem 0' }}>
+      <div style={{
+        width: '64px',
+        height: '64px',
+        borderRadius: '18px',
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: 'var(--shadow-sm)',
+      }}>
+        <FileText size={26} color="var(--text-secondary)" style={{ opacity: 0.7 }} />
+      </div>
+      <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)', fontSize: '1.05rem', letterSpacing: '-0.015em' }}>No PDFs yet</p>
       <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
         Upload your first PDF to get started
       </p>
@@ -239,14 +270,15 @@ function SessionCard({ session, onContinue, onDelete }) {
       onMouseLeave={() => { setHovered(false); if (!deleting) setConfirming(false) }}
       style={{
         background: 'var(--surface)',
-        border: `1px solid ${confirming ? '#e03e3e' : 'var(--border)'}`,
-        borderRadius: '8px',
-        padding: '1rem',
+        border: `1px solid ${confirming ? '#e03e3e' : hovered ? 'var(--border-strong)' : 'var(--border)'}`,
+        borderRadius: 'var(--radius-lg)',
+        padding: '1.15rem',
         display: 'flex',
         flexDirection: 'column',
         gap: '0.5rem',
-        boxShadow: hovered ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-        transition: 'box-shadow 0.15s, border-color 0.15s',
+        transform: hovered && !confirming ? 'translateY(-2px)' : 'translateY(0)',
+        boxShadow: hovered ? 'var(--shadow-md)' : 'var(--shadow-sm)',
+        transition: 'transform var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out), border-color var(--dur-fast) ease',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

@@ -22,13 +22,12 @@ export default function Toast({ toasts }) {
       {toasts.map((t) => (
         <div
           key={t.id}
+          className="scale-in glass"
           style={{
-            padding: '0.65rem 1rem',
-            background: 'var(--bg)',
-            border: `1px solid var(--border)`,
+            padding: '0.7rem 1rem',
             borderLeft: `3px solid ${variantColor[t.variant] ?? variantColor.info}`,
-            borderRadius: '6px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+            borderRadius: '12px',
+            boxShadow: 'var(--shadow-lg)',
             color: 'var(--text-primary)',
             fontSize: '0.875rem',
             maxWidth: '320px',

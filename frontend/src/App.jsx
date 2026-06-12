@@ -1,8 +1,11 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import useSessionStore from './store/sessionStore'
-import LandingPage from './pages/LandingPage'
 import DashboardPage from './pages/DashboardPage'
 import WorkdeskPage from './pages/Workdesk'
+
+// Code-split the landing page — its animation assets must never bloat the Workdesk bundle.
+const LandingPage = lazy(() => import('./pages/LandingPage'))
 
 function ProtectedRoute({ children }) {
   const user = useSessionStore((s) => s.user)
@@ -17,7 +20,16 @@ function PublicRoute({ children }) {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
+      <Route
+        path="/"
+        element={
+          <PublicRoute>
+            <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--bg)' }} />}>
+              <LandingPage />
+            </Suspense>
+          </PublicRoute>
+        }
+      />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="/workdesk/:id" element={<ProtectedRoute><WorkdeskPage /></ProtectedRoute>} />
     </Routes>

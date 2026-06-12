@@ -109,14 +109,19 @@ export default function Workdesk({ pdfUrl }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)' }}>
-      {/* Toolbar */}
-      <div style={{
-        height: '44px', minHeight: '44px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 1rem',
-        background: 'var(--surface)', borderBottom: '1px solid var(--border)',
-        gap: '1rem',
-      }}>
+      {/* Toolbar — floating glass header */}
+      <div style={{ padding: '10px 12px 8px', flexShrink: 0, background: 'var(--bg)' }}>
+        <div
+          className="glass"
+          style={{
+            height: '46px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0 0.6rem 0 0.4rem',
+            gap: '1rem',
+            borderRadius: '14px',
+            boxShadow: 'var(--shadow-md)',
+          }}
+        >
         {/* Left */}
         <button
           onClick={() => navigate('/dashboard')}
@@ -124,8 +129,11 @@ export default function Workdesk({ pdfUrl }) {
             display: 'flex', alignItems: 'center', gap: '0.35rem',
             background: 'none', border: 'none', color: 'var(--text-secondary)',
             fontFamily: 'inherit', fontSize: '0.85rem', cursor: 'pointer',
-            padding: '0.25rem 0.5rem', borderRadius: '6px', flexShrink: 0,
+            padding: '0.35rem 0.65rem', borderRadius: '9px', flexShrink: 0,
+            transition: 'color var(--dur-fast) ease',
           }}
+          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
         >
           <ArrowLeft size={15} />
           Dashboard
@@ -169,6 +177,7 @@ export default function Workdesk({ pdfUrl }) {
             {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </IconButton>
         </div>
+        </div>
       </div>
 
       {/* Panels */}
@@ -210,16 +219,16 @@ export default function Workdesk({ pdfUrl }) {
           transition: panelTransition,
         }}>
 
-          {/* Notes panel — fixed 260px, clipped by right container overflow:hidden */}
+          {/* Notes panel — fixed 300px, clipped by right container overflow:hidden */}
           <div style={{
-            width: notesPanelOpen && !aiOnlyMode ? '260px' : '0px',
+            width: notesPanelOpen && !aiOnlyMode ? '300px' : '0px',
             flexShrink: 0, overflow: 'hidden',
             display: 'flex', flexDirection: 'column',
             background: 'var(--surface)',
             borderRight: '1px solid var(--border)',
             transition: panelTransition,
           }}>
-            <div style={{ width: '260px', minWidth: '260px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ width: '300px', minWidth: '300px', height: '100%', display: 'flex', flexDirection: 'column' }}>
               <NotesPanel />
             </div>
           </div>
@@ -254,19 +263,25 @@ export default function Workdesk({ pdfUrl }) {
 
 function IconButton({ onClick, title, children, active }) {
   const [hovered, setHovered] = useState(false)
+  const [pressed, setPressed] = useState(false)
   return (
     <button
       onClick={onClick}
       title={title}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseLeave={() => { setHovered(false); setPressed(false) }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: '30px', height: '30px',
-        background: active ? 'var(--accent)' : hovered ? 'var(--border)' : 'transparent',
-        border: 'none', borderRadius: '6px',
-        color: active ? 'var(--on-accent)' : 'var(--text-secondary)',
-        cursor: 'pointer', transition: 'background 0.15s',
+        width: '32px', height: '32px',
+        background: active ? 'var(--accent)' : hovered ? 'var(--surface-2)' : 'transparent',
+        border: 'none', borderRadius: '9px',
+        color: active ? 'var(--on-accent)' : hovered ? 'var(--text-primary)' : 'var(--text-secondary)',
+        cursor: 'pointer',
+        transform: pressed ? 'scale(0.92)' : hovered ? 'scale(1.05)' : 'scale(1)',
+        boxShadow: active ? '0 2px 12px color-mix(in srgb, var(--accent) 35%, transparent)' : 'none',
+        transition: 'background var(--dur-fast) ease, color var(--dur-fast) ease, transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) ease',
       }}
     >
       {children}

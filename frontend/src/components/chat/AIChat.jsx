@@ -181,10 +181,19 @@ export default function AIChat() {
           disabled={isTyping}
           style={{
             flex: 1, resize: 'none',
-            border: '1px solid var(--border)', borderRadius: '8px',
-            padding: '0.5rem 0.75rem', fontFamily: 'inherit', fontSize: 'inherit',
+            border: '1px solid var(--border)', borderRadius: '11px',
+            padding: '0.55rem 0.8rem', fontFamily: 'inherit', fontSize: 'inherit',
             background: 'var(--bg)', color: 'var(--text-primary)',
             outline: 'none', lineHeight: 1.5, opacity: isTyping ? 0.6 : 1,
+            transition: 'border-color var(--dur-fast) ease, box-shadow var(--dur-med) var(--ease-out)',
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent) 55%, var(--border))'
+            e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent)'
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = 'var(--border)'
+            e.currentTarget.style.boxShadow = 'none'
           }}
         />
         <button
@@ -192,14 +201,17 @@ export default function AIChat() {
           disabled={!canSend}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: '34px', height: '34px', flexShrink: 0,
-            background: canSend ? 'var(--accent)' : 'var(--border)',
-            border: 'none', borderRadius: '8px',
+            width: '36px', height: '36px', flexShrink: 0,
+            background: canSend ? 'var(--accent)' : 'var(--surface-2)',
+            border: 'none', borderRadius: '11px',
             cursor: canSend ? 'pointer' : 'not-allowed',
-            transition: 'background 0.15s',
+            boxShadow: canSend ? '0 2px 14px color-mix(in srgb, var(--accent) 35%, transparent)' : 'none',
+            transition: 'background var(--dur-fast) ease, box-shadow var(--dur-med) var(--ease-out), transform var(--dur-fast) var(--ease-spring)',
           }}
+          onMouseEnter={(e) => { if (canSend) e.currentTarget.style.transform = 'scale(1.06)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
         >
-          <Send size={15} color={canSend ? 'white' : 'var(--text-secondary)'} />
+          <Send size={15} color={canSend ? 'var(--on-accent)' : 'var(--text-secondary)'} />
         </button>
       </div>
 
@@ -211,13 +223,19 @@ export default function AIChat() {
 function MessageBubble({ message }) {
   const isUser = message.role === 'user'
   return (
-    <div style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
+    <div className="msg-enter" style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
       <div style={{
-        maxWidth: '85%', padding: '0.5rem 0.75rem', borderRadius: '8px',
+        maxWidth: '85%', padding: '0.6rem 0.85rem',
+        borderRadius: isUser ? '16px 16px 4px 16px' : '4px 16px 16px 16px',
         lineHeight: 1.6,
-        background: isUser ? 'var(--accent)' : 'var(--bg)',
-        color: isUser ? 'white' : 'var(--text-primary)',
+        background: isUser
+          ? 'linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 78%, var(--text-primary)))'
+          : 'var(--surface-2)',
+        color: isUser ? 'var(--on-accent)' : 'var(--text-primary)',
         border: isUser ? 'none' : '1px solid var(--border)',
+        boxShadow: isUser
+          ? '0 2px 12px color-mix(in srgb, var(--accent) 25%, transparent)'
+          : 'var(--shadow-sm)',
         whiteSpace: isUser ? 'pre-wrap' : undefined,
         wordBreak: 'break-word',
       }}>
@@ -287,10 +305,11 @@ function HintButton({ label, onClick }) {
 
 function TypingIndicator() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+    <div className="msg-enter" style={{ display: 'flex', justifyContent: 'flex-start' }}>
       <div style={{
-        padding: '0.5rem 0.85rem', borderRadius: '8px',
-        background: 'var(--bg)', border: '1px solid var(--border)',
+        padding: '0.6rem 0.9rem', borderRadius: '4px 16px 16px 16px',
+        background: 'var(--surface-2)', border: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-sm)',
         display: 'flex', gap: '4px', alignItems: 'center',
       }}>
         {[0, 1, 2].map((i) => (
