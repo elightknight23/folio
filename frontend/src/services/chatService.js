@@ -1,4 +1,4 @@
-const BACKEND_URL = 'http://localhost:8000'
+const BACKEND_URL = import.meta.env.VITE_API_URL
 
 export async function* streamMessage(sessionId, message, currentPage, token) {
   const body = { message, current_page: currentPage }

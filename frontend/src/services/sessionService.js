@@ -1,4 +1,4 @@
-const BACKEND_URL = 'http://localhost:8000'
+const BACKEND_URL = import.meta.env.VITE_API_URL
 
 export async function fetchUserSessions(accessToken) {
   const res = await fetch(`${BACKEND_URL}/sessions`, {
