@@ -7,6 +7,8 @@
 **Folio puts your PDF and a context-aware AI side by side — in one tab.**
 It knows the page you're on, reads what you highlight, and remembers the whole document.
 
+**[→ Live demo](https://folio-pearl-eight.vercel.app)**
+
 <br/>
 
 ![React](https://img.shields.io/badge/React_18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
@@ -265,7 +267,7 @@ Sign in with Google, upload a PDF, and start asking.
 - [x] Highlight-to-Ask
 - [x] Sticky notes panel
 - [x] Animated Notion-style landing page
-- [ ] Deployment (Vercel + Render)
+- [x] Deployment (Vercel + Render)
 - [ ] Continuous scroll with virtualized rendering + thumbnails / TOC sidebar
 - [ ] Reverse citation jump — click an AI answer, land on the source page
 - [ ] Inline annotations & multi-document context
